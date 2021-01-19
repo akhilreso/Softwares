@@ -1,0 +1,248 @@
+ItestListener Implementation for extent report
+------------------------------------------------------------------
+public class ItestlistenerIMP implements ITestListener {
+	 ExtentReports report;
+	 ExtentTest test;
+	@Override		
+    public void onFinish(ITestContext arg0) {					
+       	report.flush();		
+        		
+    }		
+
+    @Override		
+    public void onStart(ITestContext arg0) {					
+        ExtentHtmlReporter htmlReport=new ExtentHtmlReporter(new File(".\\ExtentReport\\report.html"));				
+        htmlReport.config().setDocumentTitle("Extent Report");
+        htmlReport.config().setTheme(Theme.DARK);
+        htmlReport.config().setReportName("Functional Test");
+         report=new ExtentReports();
+        report.attachReporter(htmlReport);
+        report.setSystemInfo("TestURL", "https://example.com");
+        report.setSystemInfo("Platform", "Windows 10");
+        report.setSystemInfo("Reporter Name", "Nithesh");
+    }		
+
+    @Override		
+    public void onTestFailedButWithinSuccessPercentage(ITestResult arg0) {					
+        // TODO Auto-generated method stub				
+        		
+    }		
+
+    @Override		
+    public void onTestFailure(ITestResult result) {					
+        test.log(Status.FAIL, result.getMethod().getMethodName()+" is failed");
+        test.log(Status.FAIL, result.getThrowable());
+		try {
+			String path = WebDriverUtiity.takeScreenshot(BaseClass.staticDriver, result.getMethod().getMethodName());
+			test.addScreenCaptureFromPath(path);
+		} catch (Throwable e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+       
+        		
+    }		
+
+    @Override		
+    public void onTestSkipped(ITestResult result) {					
+       test.log(Status.SKIP, result.getMethod().getMethodName()+" is skipped");				
+       test.log(Status.SKIP, result.getThrowable());	
+    }		
+
+    @Override		
+    public void onTestStart(ITestResult result) {					
+       test=report.createTest(result.getMethod().getMethodName());				
+        		
+    }		
+
+    @Override		
+    public void onTestSuccess(ITestResult arg0) {					
+       test.log(Status.PASS, arg0.getMethod().getMethodName()+" is passed");			
+        		
+    }	
+
+}
+
+Adding testcases with listener
+-----------------------------------------------------------------
+public class TestCase1 extends BaseClass{
+	@Test
+	public void testcase1() {
+		test=report.createTest("testcase1");
+		test.log(Status.INFO, "testcase 1 executed");
+		System.out.println("Testcase1 is executed");
+	}
+
+}
+------------------
+public class Testcase2 extends BaseClass{
+	@Test
+	public void testcase2() {
+		test=report.createTest("testcase2");
+		test.log(Status.INFO, "entering the username");
+		driver.findElement(By.name("user_name")).sendKeys("Admin");
+		test.log(Status.INFO, "entering the password");
+		driver.findElement(By.name("user_password")).sendKeys("manager");
+		Assert.assertTrue(false);
+	}
+
+}
+------------------
+public class Testcase3 extends BaseClass {
+	@Test
+	public void testcase3() {
+		test=report.createTest("testcase3");
+		test.log(Status.INFO, "testcase 3 executed");
+		System.out.println("testcase3 is executed");
+	}
+
+}
+------------------
+Running the suite by adding listener tags
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Suite">
+<listeners>
+<listener class-name="extentReportCreation.ItestlistenerIMP"/>
+</listeners>
+  <test thread-count="5" name="Test">
+    <classes>
+      <class name="extentReportCreation.TestCase1"/>
+      <class name="extentReportCreation.Testcase2"/>
+      <class name="extentReportCreation.Testcase3"/>
+    </classes>
+  </test> <!-- Test -->
+</suite> <!-- Suite -->
+
+
+
+----------------------------------------------
+Integerating extent report with base class
+public class BaseClass {
+	public WebDriver driver;
+	public static WebDriver staticDriver;
+	public static ExtentReports report;
+	public static ExtentTest test;
+	@BeforeSuite
+	public void configBS() {
+		//DB connection
+		ExtentHtmlReporter htmlReport=new ExtentHtmlReporter(new File(".\\ExtentReport\\report.html"));				
+        htmlReport.config().setDocumentTitle("Extent Report");
+        htmlReport.config().setTheme(Theme.DARK);
+        htmlReport.config().setReportName("Functional Test");
+         report=new ExtentReports();
+        report.attachReporter(htmlReport);
+        report.setSystemInfo("TestURL", "https://example.com");
+        report.setSystemInfo("Platform", "Windows 10");
+        report.setSystemInfo("Reporter Name", "Nithesh");
+	}
+	@BeforeTest
+	public void configBT() {
+		//parallel execution
+	}
+	@BeforeClass
+	public void configBC() {
+		//launch the browser
+	}
+	@BeforeMethod
+	public void setUp() {
+		WebDriverManager.chromedriver().setup();
+		driver=new ChromeDriver();
+		driver.manage().window().maximize();
+		driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+		driver.get("http://localhost:8888/");
+		staticDriver=driver;
+	}
+	@AfterMethod
+	public void tearDown(ITestResult result) {
+		if(result.getStatus()==ITestResult.FAILURE) {
+			test.log(Status.FAIL, result.getMethod().getMethodName()+" is failed");
+	        test.log(Status.FAIL, result.getThrowable());
+			try {
+				String path = WebDriverUtiity.takeScreenshot(BaseClass.staticDriver, result.getMethod().getMethodName());
+				test.addScreenCaptureFromPath(path);
+			} catch (Throwable e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+		else if(result.getStatus()==ITestResult.SUCCESS) {
+			test.log(Status.PASS, result.getMethod().getMethodName()+" is passed");
+		}
+		else if(result.getStatus()==ITestResult.SKIP) {
+			test.log(Status.SKIP, result.getMethod().getMethodName()+" is skipped");				
+		    test.log(Status.SKIP, result.getThrowable());
+		}
+		
+		driver.close();
+	}
+	@AfterClass
+	public void configAC() {
+		//close the browser
+	}
+	@AfterTest
+	public void configAT() {
+		//close browser launvhed in parallel
+	}
+	@AfterSuite
+	public void configAS() {
+		report.flush();
+		//close db
+	}
+
+}
+
+---------------------------------
+Extending testcases from baseclass
+-----------------------------------------------------------------
+public class TestCase1 extends BaseClass{
+	@Test
+	public void testcase1() {
+		test=report.createTest("testcase1");
+		test.log(Status.INFO, "testcase 1 executed");
+		System.out.println("Testcase1 is executed");
+	}
+
+}
+------------------
+public class Testcase2 extends BaseClass{
+	@Test
+	public void testcase2() {
+		test=report.createTest("testcase2");
+		test.log(Status.INFO, "entering the username");
+		driver.findElement(By.name("user_name")).sendKeys("Admin");
+		test.log(Status.INFO, "entering the password");
+		driver.findElement(By.name("user_password")).sendKeys("manager");
+		Assert.assertTrue(false);
+	}
+
+}
+------------------
+public class Testcase3 extends BaseClass {
+	@Test
+	public void testcase3() {
+		test=report.createTest("testcase3");
+		test.log(Status.INFO, "testcase 3 executed");
+		System.out.println("testcase3 is executed");
+	}
+
+}
+
+----------------------------------------
+Suite config
+--------------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Suite">
+
+  <test thread-count="5" name="Test">
+    <classes>
+      <class name="extentReportCreation.TestCase1"/>
+      <class name="extentReportCreation.Testcase2"/>
+      <class name="extentReportCreation.Testcase3"/>
+    </classes>
+  </test> <!-- Test -->
+</suite> <!-- Suite -->
