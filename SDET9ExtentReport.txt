@@ -1,0 +1,145 @@
+dependency
+------------------------------------
+		<dependency>
+			<groupId>com.aventstack</groupId>
+			<artifactId>extentreports</artifactId>
+			<version>5.0.1</version>
+		</dependency>
+-------------------------------
+
+
+Itestlistener implementation class
+------------------------------------------------------
+import java.io.File;
+import java.io.IOException;
+
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.events.EventFiringWebDriver;
+import org.testng.ITestContext;
+import org.testng.ITestListener;
+import org.testng.ITestResult;
+
+import com.aventstack.extentreports.ExtentReports;
+import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.Status;
+import com.aventstack.extentreports.reporter.ExtentSparkReporter;
+import com.aventstack.extentreports.reporter.configuration.Theme;
+import com.google.common.io.Files;
+
+public class ItestListenerIMP implements ITestListener{
+	ExtentReports reports;
+	ExtentTest test;
+	public void onTestStart(ITestResult result) {
+		test=reports.createTest(result.getMethod().getMethodName());
+		
+	}
+
+	public void onTestSuccess(ITestResult result) {
+		test.log(Status.PASS, result.getMethod().getMethodName()+" is Passed");
+		
+	}
+
+	public void onTestFailure(ITestResult result) {
+		//WebDriver driver = null;
+		test.log(Status.FAIL, result.getMethod().getMethodName()+" is failed");
+		test.log(Status.FAIL, result.getThrowable());
+//		EventFiringWebDriver event=new EventFiringWebDriver(driver);
+//		File src=event.getScreenshotAs(OutputType.FILE);
+//		String screenshotPath="./screenshot/"+result.getMethod().getMethodName()+".PNG";
+//		File dest=new File(screenshotPath);
+//		try {
+//			Files.copy(src, dest);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		test.addScreenCaptureFromPath(screenshotPath);
+	}
+
+	public void onTestSkipped(ITestResult result) {
+		test.log(Status.SKIP, result.getMethod().getMethodName()+" is skipped");
+		test.log(Status.SKIP, result.getThrowable());
+		
+	}
+
+	public void onTestFailedButWithinSuccessPercentage(ITestResult result) {
+		
+		
+	}
+
+	public void onStart(ITestContext context) {
+		ExtentSparkReporter htmlReporter=new ExtentSparkReporter(new File("./ExtentReport.html"));
+		htmlReporter.config().setDocumentTitle("Vtiger App");
+		htmlReporter.config().setTheme(Theme.DARK);
+		htmlReporter.config().setReportName("Smoke test");
+		
+		reports=new ExtentReports();
+		reports.attachReporter(htmlReporter);
+		reports.setSystemInfo("Test url", "http://localhost:8888");
+		reports.setSystemInfo("OS", "Windows");
+		reports.setSystemInfo("Reporter Name", "Nithesh HS");
+		reports.setSystemInfo("BrowserName", "Chrome");
+		reports.setSystemInfo("Browser version", "87");
+		
+	}
+
+	public void onFinish(ITestContext context) {
+		reports.flush();
+		
+	}
+
+}
+----------------------------------------------------------------
+
+Testcases:
+------------------------
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
+@Listeners(extentReport.ItestListenerIMP.class)
+public class TestCase1 {
+	@Test
+	public void testcase1() {
+		System.out.println("testcase1 exceuted");
+	}
+	
+
+}
+=================
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
+@Listeners(extentReport.ItestListenerIMP.class)
+public class Testcase2 {
+	@Test
+	public void testcase2() {
+		System.out.println("testcase 2 got executed");
+	}
+
+}
+=====================
+import org.testng.Assert;
+import org.testng.annotations.Listeners;
+import org.testng.annotations.Test;
+@Listeners(extentReport.ItestListenerIMP.class)
+public class Testcase3 {
+	@Test
+	public void testcase3() {
+		System.out.println("testcase 3 got exceuted");
+		Assert.assertTrue(false);
+	}
+
+}
+===========================
+Suite xml file
+---------------------------------
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Suite">
+  <test thread-count="5" name="Test">
+    <classes>
+      <class name="extentReport.TestCase1"/>
+      <class name="extentReport.Testcase3"/>
+      <class name="extentReport.Testcase2"/>
+    </classes>
+  </test> <!-- Test -->
+</suite> <!-- Suite -->
+-------------------------------------
